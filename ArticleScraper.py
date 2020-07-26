@@ -14,10 +14,11 @@ urlregex = "http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9
 linkslist = list()
 selectedlinks = list()
 titlelist = list()
+imglist = list()
 vdolist = list()
 document = Document()
 Articlecount = 0
-
+vidoecount = 0
 
 #FUNCTIONS
 
@@ -27,9 +28,10 @@ def printlinks(strt,stp):
     Linkcount = 0
     for l in linkslist[strt:stp]:
         Linkcount = Linkcount + 1
-        print(Linkcount, l)   
+        print(Linkcount, l)
+        
 
-#ADD A LINE OF TEXT IN THE DOCUMENT WITH FONT TYPE
+#ADD A LINE OF TEXT IN THE DOCUMENT WITH FONT TYPE AND ALIGNMENT
 def addline(lne,typ,algn): 
     docline = document.add_paragraph()
     f = docline.add_run(lne)
@@ -138,7 +140,7 @@ except:
     print("An Error occured, please check the file name/location")
 
 #GETTING NUMBER OF LINKS TO PROCESS
-noflinks2process = input("How many links from the first would you like to process? [Use N-N or N Format or Use 'A' for All Links] \n")
+noflinks2process = input("\nHow many links from the first would you like to process? \n[Use N or N-N Format or Use 'A' for All Links(Time Consuming, More Computation)] \n")
 n2nfrmt = noflinks2process.find("-")
 if n2nfrmt == -1 :
     if noflinks2process == 'A':
@@ -176,31 +178,49 @@ else:
 #GETTING NAME OF THE DOCUMENT AND INITIATING THE PROCESS
 docname = input("\nInput a name for the document [ADD '.docx' in the end]: ")
 selectedlinks = linkslist[nofl2pstrt:nofl2pstp]
+print("\nThe article scraping operation has been completed for the following titles:")
 for link in selectedlinks:
 #SCRAPING THE DATA
     url = link
-    article = Article(url)
-    article.download()
-    article.parse()
-    article.nlp()
+    try:
+        article = Article(url)
+        article.download()
+        article.parse()
+        article.nlp()
+    except:
+        print(url, "Cannot Access URL")
+        continue
     titlelist.append(article.title)
 #WRITING THE DOCUMENT
     #TITLE
-    writetitle(article.title)
+    title = article.title
+    writetitle(title)
     #URL
     addline(url,"I","L")
     #ARTICLE
     writearticle(article.text)
     #IMAGES
-    image = article.top_image
-    if image != ' ' :
-        try:
-            writeimg(image)
-        #writearticle(arg4lnk)
-        except:
-            addline("Broken Link for the Image.","B","C")
+    imglist = article.images
+    if len(imglist)>0 :
+        for im in imglist:
+            try:
+                writeimg(im)
+                #writearticle(arg4lnk)
+            except:
+                addline("Broken Link for the Image.","B","C")
     else:
         addline("No Image for this article.","B","C")
+    #VIDEO LINKS
+    vdolist = article.movies
+    addline("Videos","B","L")
+    if len(vdolist) > 0 :
+        for vdo in vdolist:
+            vidoecount = vidoecount + 1
+            addline("Article Videos "+str(vidoecount)+":","B","L")
+            addline(vdo,"I","L")
+        vidoecount = 0
+    else:
+        addline("No Videos for this article.","B","C")
     #SUMMARY
     summry = article.summary
     addline("Summary","B","L")
@@ -211,8 +231,5 @@ for link in selectedlinks:
     #SAVING DOCUMENT
     document.add_page_break()
     document.save(docname)
-
-print("\nThe article scraping operation has been completed for the following titles:")
-for title in titlelist:
     Articlecount = Articlecount + 1
     print(Articlecount, title)
